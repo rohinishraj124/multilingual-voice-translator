@@ -1,8 +1,3 @@
-"""
-gui/main_window.py  —  Multilingual Voice Translator
-Complete version with CPU-optimised voice preservation.
-"""
-
 import time
 import threading
 import tkinter as tk
@@ -16,7 +11,6 @@ from streaming.stream_manager import StreamManager
 
 _LANG_NAMES   = ["Auto Detect"] + list(LANGUAGES.keys())
 _TARGET_NAMES = list(LANGUAGES.keys())
-
 
 class MainWindow:
 
@@ -37,181 +31,178 @@ class MainWindow:
         self._build_layout()
         self._bind_shortcuts()
 
-    # ── Layout ────────────────────────────────────────────────────────────
-
     def _build_layout(self):
-        self.header_frame = ctk.CTkFrame(self.root)
-        self.header_frame.pack(fill="x", padx=12, pady=(12, 4))
+        self.root.configure(fg_color="#000000")
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
 
-        self.control_frame = ctk.CTkFrame(self.root)
-        self.control_frame.pack(fill="x", padx=12, pady=4)
+        self.sidebar_frame = ctk.CTkFrame(self.root, width=220, corner_radius=0, fg_color="#101010", border_width=0)
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid_propagate(False)
 
-        self.panels_frame = ctk.CTkFrame(self.root, fg_color="transparent")
-        self.panels_frame.pack(fill="both", expand=True, padx=12, pady=4)
+        self.main_frame = ctk.CTkFrame(self.root, fg_color="#000000", corner_radius=0, border_width=0)
+        self.main_frame.grid(row=0, column=1, sticky="nsew")
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=1)
+
+        self.header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+
+        self.panels_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.panels_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
         self.panels_frame.columnconfigure(0, weight=1)
         self.panels_frame.columnconfigure(1, weight=1)
         self.panels_frame.rowconfigure(0, weight=1)
 
-        self.source_frame = ctk.CTkFrame(self.panels_frame)
-        self.source_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        self.source_frame = ctk.CTkFrame(self.panels_frame, fg_color="#1A1A1A", corner_radius=12)
+        self.source_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
 
-        self.translation_frame = ctk.CTkFrame(self.panels_frame)
-        self.translation_frame.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
+        self.translation_frame = ctk.CTkFrame(self.panels_frame, fg_color="#1A1A1A", corner_radius=12)
+        self.translation_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
 
-        self.status_frame = ctk.CTkFrame(self.root)
-        self.status_frame.pack(fill="x", padx=12, pady=(4, 12))
+        self.footer_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.footer_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(10, 20))
 
         self._build_widgets()
 
     def _build_widgets(self):
 
-        # ── Title ─────────────────────────────────────────────────────
         ctk.CTkLabel(
-            self.header_frame,
-            text="🌐  Multilingual Voice Translator",
-            font=ctk.CTkFont("Georgia", 24, "bold"),
-        ).pack(side="left", padx=16, pady=10)
+            self.sidebar_frame,
+            text="VOICE\nTRANSLATOR",
+            font=ctk.CTkFont(family="Inter", size=22, weight="bold"),
+            text_color="#FFFFFF",
+            justify="left"
+        ).pack(padx=20, pady=(40, 40), anchor="w")
 
-        self.detected_pill = ctk.CTkLabel(
-            self.header_frame, text="",
-            font=ctk.CTkFont(size=12),
-            fg_color=("#2b5ea7", "#1a3d6e"),
-            corner_radius=8, padx=10, pady=4,
+        btn_padding = {"padx": 15, "pady": 5, "fill": "x"}
+        
+        self.record_button = ctk.CTkButton(
+            self.sidebar_frame, text="🎤  Record Audio", 
+            height=40, corner_radius=8, fg_color="#2b5ea7", hover_color="#3a7ebf",
+            command=self.start_recording,
         )
-        self.detected_pill.pack(side="right", padx=16, pady=10)
+        self.record_button.pack(**btn_padding)
 
-        # ── Language row ──────────────────────────────────────────────
-        lang_row = ctk.CTkFrame(self.control_frame, fg_color="transparent")
-        lang_row.pack(fill="x", padx=10, pady=(10, 4))
+        self.start_live_button = ctk.CTkButton(
+            self.sidebar_frame, text="🟢  Start Live", 
+            height=40, corner_radius=8, fg_color="#2e7d32", hover_color="#388e3c",
+            command=self.start_live_translation,
+        )
+        self.start_live_button.pack(**btn_padding)
 
-        ctk.CTkLabel(lang_row, text="Source:", font=ctk.CTkFont(size=13)).pack(side="left", padx=(0, 4))
-        self.source_lang_menu = ctk.CTkOptionMenu(lang_row, values=_LANG_NAMES, width=160)
+        self.stop_live_button = ctk.CTkButton(
+            self.sidebar_frame, text="🔴  Stop Live", 
+            height=40, corner_radius=8, fg_color="#c62828", hover_color="#d32f2f",
+            command=self.stop_live_translation,
+        )
+        self.stop_live_button.pack(**btn_padding)
+
+        ctk.CTkFrame(self.sidebar_frame, height=2, fg_color="#2A2A2A").pack(fill="x", padx=20, pady=15)
+
+        self.history_button = ctk.CTkButton(
+            self.sidebar_frame, text="📜  History", 
+            height=40, corner_radius=8, fg_color="transparent", border_width=1, border_color="#3A3A3A",
+            command=self.show_history,
+        )
+        self.history_button.pack(**btn_padding)
+
+        self.export_button = ctk.CTkButton(
+            self.sidebar_frame, text="💾  Export CSV", 
+            height=40, corner_radius=8, fg_color="transparent", border_width=1, border_color="#3A3A3A",
+            command=self.export_history,
+        )
+        self.export_button.pack(**btn_padding)
+
+        self.clear_button = ctk.CTkButton(
+            self.sidebar_frame, text="🗑  Clear All", 
+            height=40, corner_radius=8, fg_color="transparent", border_width=1, border_color="#3A3A3A",
+            command=self.clear_text,
+        )
+        self.clear_button.pack(**btn_padding)
+
+        lang_row = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        lang_row.pack(fill="x")
+
+        ctk.CTkLabel(lang_row, text="Source:", font=ctk.CTkFont(size=13, weight="bold")).pack(side="left", padx=(0, 10))
+        self.source_lang_menu = ctk.CTkOptionMenu(
+            lang_row, values=_LANG_NAMES, width=150, 
+            fg_color="#2A2A2A", button_color="#3A3A3A", button_hover_color="#4A4A4A"
+        )
         self.source_lang_menu.set("Auto Detect")
-        self.source_lang_menu.pack(side="left", padx=(0, 14))
+        self.source_lang_menu.pack(side="left")
 
-        ctk.CTkLabel(lang_row, text="→", font=ctk.CTkFont(size=18)).pack(side="left", padx=6)
+        ctk.CTkLabel(lang_row, text="→", font=ctk.CTkFont(size=20)).pack(side="left", padx=20)
 
-        ctk.CTkLabel(lang_row, text="Target:", font=ctk.CTkFont(size=13)).pack(side="left", padx=(14, 4))
-        self.target_lang_menu = ctk.CTkOptionMenu(lang_row, values=_TARGET_NAMES, width=160)
+        ctk.CTkLabel(lang_row, text="Target:", font=ctk.CTkFont(size=13, weight="bold")).pack(side="left", padx=(0, 10))
+        self.target_lang_menu = ctk.CTkOptionMenu(
+            lang_row, values=_TARGET_NAMES, width=150,
+            fg_color="#2A2A2A", button_color="#3A3A3A", button_hover_color="#4A4A4A"
+        )
         self.target_lang_menu.set("Hindi")
         self.target_lang_menu.pack(side="left")
 
-        # ── Voice preservation row ────────────────────────────────────
-        vp_row = ctk.CTkFrame(self.control_frame, fg_color="transparent")
-        vp_row.pack(fill="x", padx=10, pady=(4, 4))
+        self.detected_pill = ctk.CTkLabel(
+            lang_row, text="",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color="#1a3d6e", corner_radius=12, padx=12, pady=4,
+        )
+        self.detected_pill.pack(side="right")
 
-        ctk.CTkLabel(vp_row, text="🎭  Voice:", font=ctk.CTkFont(size=13)).pack(side="left", padx=(0, 8))
+        self._build_text_panel(self.source_frame,      "SOURCE TEXT",  "source_textbox",      "source_count")
+        self._build_text_panel(self.translation_frame, "TRANSLATION",  "translation_textbox", "translation_count", accent=True)
+
+        settings_row = ctk.CTkFrame(self.footer_frame, fg_color="transparent")
+        settings_row.pack(fill="x", pady=(0, 10))
 
         self.voice_preserve_var = tk.BooleanVar(value=True)
         self.vp_switch = ctk.CTkSwitch(
-            vp_row,
-            text="Preserve speaker voice",
-            variable=self.voice_preserve_var,
-            font=ctk.CTkFont(size=12),
+            settings_row, text="Preserve Voice", variable=self.voice_preserve_var,
+            font=ctk.CTkFont(size=12), progress_color="#2b5ea7",
             command=self._on_vp_toggle,
         )
         self.vp_switch.pack(side="left", padx=(0, 20))
 
-        ctk.CTkLabel(vp_row, text="Strength:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(0, 6))
+        ctk.CTkLabel(settings_row, text="Strength:", font=ctk.CTkFont(size=12)).pack(side="left", padx=(0, 10))
         self.strength_var = tk.DoubleVar(value=0.6)
         self.strength_slider = ctk.CTkSlider(
-            vp_row, from_=0.1, to=1.0,
-            variable=self.strength_var,
-            width=140,
+            settings_row, from_=0.1, to=1.0, variable=self.strength_var,
+            width=120, progress_color="#2b5ea7", button_color="#3a7ebf",
             command=self._on_strength_change,
         )
         self.strength_slider.pack(side="left")
-        self.strength_label = ctk.CTkLabel(
-            vp_row, text="0.6", font=ctk.CTkFont(size=12), width=32
-        )
-        self.strength_label.pack(side="left", padx=(6, 16))
+        self.strength_label = ctk.CTkLabel(settings_row, text="0.6", font=ctk.CTkFont(size=12, weight="bold"), width=35)
+        self.strength_label.pack(side="left")
 
         self.reset_voice_btn = ctk.CTkButton(
-            vp_row, text="↺  Reset Voice",
-            width=120, height=30,
-            fg_color="gray30", hover_color="gray40",
+            settings_row, text="↺ Reset Profile",
+            width=110, height=28, corner_radius=6,
+            fg_color="#333333", hover_color="#444444",
             font=ctk.CTkFont(size=11),
             command=self._reset_voice,
         )
-        self.reset_voice_btn.pack(side="left")
-
-        # ── Buttons ───────────────────────────────────────────────────
-        btn_row = ctk.CTkFrame(self.control_frame, fg_color="transparent")
-        btn_row.pack(pady=(6, 10))
-
-        self.record_button = ctk.CTkButton(
-            btn_row, text="🎤  Record", width=150, height=42,
-            command=self.start_recording,
-        )
-        self.record_button.pack(side="left", padx=6)
-
-        self.start_live_button = ctk.CTkButton(
-            btn_row, text="🟢  Live Start", width=140, height=42,
-            command=self.start_live_translation,
-        )
-        self.start_live_button.pack(side="left", padx=6)
-
-        self.stop_live_button = ctk.CTkButton(
-            btn_row, text="🔴  Live Stop", width=140, height=42,
-            fg_color="#8b1a1a", hover_color="#a02020",
-            command=self.stop_live_translation,
-        )
-        self.stop_live_button.pack(side="left", padx=6)
-
-        self.clear_button = ctk.CTkButton(
-            btn_row, text="🗑  Clear", width=110, height=42,
-            fg_color="gray30", hover_color="gray40",
-            command=self.clear_text,
-        )
-        self.clear_button.pack(side="left", padx=6)
-
-        self.history_button = ctk.CTkButton(
-            btn_row, text="📜  History", width=110, height=42,
-            fg_color="gray30", hover_color="gray40",
-            command=self.show_history,
-        )
-        self.history_button.pack(side="left", padx=6)
-
-        self.export_button = ctk.CTkButton(
-            btn_row, text="💾  Export CSV", width=130, height=42,
-            fg_color="gray30", hover_color="gray40",
-            command=self.export_history,
-        )
-        self.export_button.pack(side="left", padx=6)
-
-        # ── Text panels ───────────────────────────────────────────────
-        self._build_text_panel(self.source_frame,      "Source Text",  "source_textbox",      "source_count")
-        self._build_text_panel(self.translation_frame, "Translation",  "translation_textbox", "translation_count", accent=True)
-
-        # ── Progress + status ─────────────────────────────────────────
-        self.progress_bar = ctk.CTkProgressBar(self.status_frame)
-        self.progress_bar.pack(fill="x", padx=10, pady=(10, 4))
-        self.progress_bar.set(0)
-
-        status_row = ctk.CTkFrame(self.status_frame, fg_color="transparent")
-        status_row.pack(fill="x", padx=10, pady=(0, 10))
-
-        self.status_label = ctk.CTkLabel(
-            status_row, text="Status: Ready",
-            font=ctk.CTkFont(size=12), anchor="w",
-        )
-        self.status_label.pack(side="left")
+        self.reset_voice_btn.pack(side="left", padx=20)
 
         self.voice_mode_label = ctk.CTkLabel(
-            status_row,
-            text=self._voice_mode_text(),
-            font=ctk.CTkFont(size=11),
-            fg_color=("gray85", "gray25"),
-            corner_radius=6, padx=8, pady=3,
+            settings_row, text=self._voice_mode_text(),
+            font=ctk.CTkFont(size=11), fg_color="#222222", corner_radius=6, padx=10, pady=3,
         )
         self.voice_mode_label.pack(side="right")
+
+        self.progress_bar = ctk.CTkProgressBar(self.footer_frame, height=4, progress_color="#2b5ea7", fg_color="#1A1A1A")
+        self.progress_bar.pack(fill="x", pady=(5, 5))
+        self.progress_bar.set(0)
+
+        self.status_label = ctk.CTkLabel(
+            self.footer_frame, text="Status: Ready",
+            font=ctk.CTkFont(size=12), text_color="gray70", anchor="w",
+        )
+        self.status_label.pack(fill="x")
 
         self.voice_preserve_var.trace_add(
             "write",
             lambda *_: self.voice_mode_label.configure(text=self._voice_mode_text()),
         )
-
-    # ── Voice controls ────────────────────────────────────────────────────
 
     def _voice_mode_text(self):
         if self.voice_preserve_var.get():
@@ -230,32 +221,43 @@ class MainWindow:
         reset_voice_profile()
         self.update_status("Voice profile reset — speak again to re-sample")
 
-    # ── Text panel builder ────────────────────────────────────────────────
-
     def _build_text_panel(self, parent, label, box_attr, count_attr, accent=False):
         top = ctk.CTkFrame(parent, fg_color="transparent")
-        top.pack(fill="x", padx=10, pady=(8, 0))
-        ctk.CTkLabel(top, text=label, font=ctk.CTkFont(size=13, weight="bold")).pack(side="left")
+        top.pack(fill="x", padx=12, pady=(12, 0))
+        
+        ctk.CTkLabel(
+            top, text=label, 
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color="gray60"
+        ).pack(side="left")
+        
         ctk.CTkButton(
-            top, text="Copy", width=60, height=26,
-            fg_color="gray25", hover_color="gray35",
-            font=ctk.CTkFont(size=11),
+            top, text="COPY", width=50, height=22,
+            fg_color="#2A2A2A", hover_color="#3A3A3A",
+            font=ctk.CTkFont(size=9, weight="bold"),
             command=lambda a=box_attr: self._copy(a),
         ).pack(side="right")
-        tb = ctk.CTkTextbox(parent, height=200, activate_scrollbars=True)
+        
+        tb = ctk.CTkTextbox(
+            parent, corner_radius=8, 
+            fg_color="#0F0F0F", border_width=1, border_color="#2A2A2A",
+            font=ctk.CTkFont(family="Consolas", size=14),
+            activate_scrollbars=True
+        )
         if accent:
-            tb.configure(fg_color=("#1a2a3a", "#0d1a2a"))
-        tb.pack(fill="both", expand=True, padx=10, pady=(4, 0))
+            tb.configure(border_color="#1a3d6e")
+            
+        tb.pack(fill="both", expand=True, padx=12, pady=(8, 0))
         setattr(self, box_attr, tb)
+        
         lbl = ctk.CTkLabel(
             parent, text="0 words", font=ctk.CTkFont(size=10),
-            text_color="gray50", anchor="e",
+            text_color="gray40", anchor="e",
         )
-        lbl.pack(fill="x", padx=12, pady=(2, 6))
+        lbl.pack(fill="x", padx=15, pady=(4, 8))
         setattr(self, count_attr, lbl)
+        
         tb.bind("<KeyRelease>", lambda e, a=box_attr, c=count_attr: self._update_count(a, c))
-
-    # ── Helpers ───────────────────────────────────────────────────────────
 
     def _bind_shortcuts(self):
         self.root.bind(
@@ -278,8 +280,6 @@ class MainWindow:
         self._update_count("source_textbox", "source_count")
         self._update_count("translation_textbox", "translation_count")
 
-    # ── Thread-safe UI ────────────────────────────────────────────────────
-
     def update_status(self, message):
         self.root.after(0, lambda: self.status_label.configure(text=f"Status: {message}"))
 
@@ -295,8 +295,6 @@ class MainWindow:
             self._refresh_counts()
         self.root.after(0, _do)
 
-    # ── Clear ─────────────────────────────────────────────────────────────
-
     def clear_text(self):
         self.source_textbox.delete("1.0", "end")
         self.translation_textbox.delete("1.0", "end")
@@ -304,8 +302,6 @@ class MainWindow:
         self.detected_pill.configure(text="")
         self._refresh_counts()
         self.update_status("Ready")
-
-    # ── Recording ─────────────────────────────────────────────────────────
 
     def start_recording(self):
         self.record_button.configure(state="disabled")
@@ -357,8 +353,6 @@ class MainWindow:
             self.update_progress(0)
             self.root.after(0, lambda: self.record_button.configure(state="normal"))
 
-    # ── Live translation ──────────────────────────────────────────────────
-
     def start_live_translation(self):
         if self.stream_manager and self.stream_manager.running:
             return
@@ -400,23 +394,29 @@ class MainWindow:
                 print(f"[UI live update error] {e}")
         self.root.after(100, self._update_live_display)
 
-    # ── History ───────────────────────────────────────────────────────────
-
     def show_history(self):
         history = self.history_manager.get_history()
         popup = ctk.CTkToplevel(self.root)
         popup.title("Translation History")
         popup.geometry("960x640")
+        popup.configure(fg_color="#000000")
         popup.grab_set()
 
         search_var = tk.StringVar()
         ctk.CTkEntry(
-            popup, placeholder_text="Search…",
-            textvariable=search_var, height=36,
-        ).pack(fill="x", padx=12, pady=(12, 4))
+            popup, placeholder_text="Search history...",
+            textvariable=search_var, height=40,
+            fg_color="#1A1A1A", border_color="#333333",
+            corner_radius=8
+        ).pack(fill="x", padx=20, pady=(20, 10))
 
-        textbox = ctk.CTkTextbox(popup, activate_scrollbars=True)
-        textbox.pack(fill="both", expand=True, padx=12, pady=4)
+        textbox = ctk.CTkTextbox(
+            popup, activate_scrollbars=True,
+            fg_color="#0F0F0F", border_width=1, border_color="#2A2A2A",
+            font=ctk.CTkFont(family="Consolas", size=13),
+            corner_radius=12
+        )
+        textbox.pack(fill="both", expand=True, padx=20, pady=10)
 
         def _render(filter_text=""):
             textbox.configure(state="normal")
@@ -431,7 +431,7 @@ class MainWindow:
             else:
                 for item in items:
                     textbox.insert("end",
-                        f"{'─'*60}\n"
+                        f"{'─'*80}\n"
                         f"🕐  {item['timestamp']}     "
                         f"{item['source_language']}  →  {item['target_language']}\n\n"
                         f"Source:\n{item['source_text']}\n\n"
@@ -443,10 +443,11 @@ class MainWindow:
         _render()
 
         btns = ctk.CTkFrame(popup, fg_color="transparent")
-        btns.pack(fill="x", padx=12, pady=(4, 12))
+        btns.pack(fill="x", padx=20, pady=(10, 20))
 
         ctk.CTkButton(
-            btns, text="💾 Export CSV", width=140,
+            btns, text="💾  Export CSV", width=140, height=36,
+            fg_color="#2b5ea7", hover_color="#3a7ebf",
             command=lambda: (self.export_history(), popup.focus()),
         ).pack(side="left", padx=4)
 
@@ -456,14 +457,14 @@ class MainWindow:
             _render()
 
         ctk.CTkButton(
-            btns, text="🗑 Clear History", width=140,
-            fg_color="#8b1a1a", hover_color="#a02020",
+            btns, text="🗑  Clear History", width=140, height=36,
+            fg_color="#c62828", hover_color="#d32f2f",
             command=_clear,
         ).pack(side="left", padx=4)
 
         ctk.CTkButton(
-            btns, text="Close", width=100,
-            fg_color="gray30", hover_color="gray40",
+            btns, text="Close", width=100, height=36,
+            fg_color="#333333", hover_color="#444444",
             command=popup.destroy,
         ).pack(side="right", padx=4)
 
@@ -473,8 +474,6 @@ class MainWindow:
             self.update_status(f"Exported → {filename}")
         except Exception as e:
             self.update_status(f"Export failed: {e}")
-
-    # ── Run ───────────────────────────────────────────────────────────────
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
