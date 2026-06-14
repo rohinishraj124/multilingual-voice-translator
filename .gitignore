@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+outputs/tts_cache/
+outputs/input.wav
+history/database/
+history/records/
+uploads/
+*.wav
+*.mp3
+.DS_Store

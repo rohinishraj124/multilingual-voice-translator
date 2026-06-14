@@ -1,0 +1,22 @@
+# Core ML
+openai-whisper
+transformers>=4.30.0
+torch>=2.0.0
+sentencepiece
+
+# Audio
+sounddevice
+soundfile
+scipy
+numpy
+
+# Web framework
+gradio>=4.0.0
+fastapi
+uvicorn
+python-multipart
+
+# Voice preservation
+praat-parselmouth
+librosa
+# pyrubberband  ← uncomment if rubberband CLI is available on your server
